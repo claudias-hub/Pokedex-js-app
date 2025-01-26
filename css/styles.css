@@ -7,3 +7,17 @@ body {
     color: #5c470d;
     justify-content:baseline;
 }
+.pokemon-card {
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    margin-left: auto;
+    margin-right: auto;
+
+    }
+
+.pokemon-name {
+    color: darkblue; 
+    text-decoration: underline; 
+    margin-bottom: 10px;
+}    

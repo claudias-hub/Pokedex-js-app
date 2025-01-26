@@ -31,7 +31,7 @@ let pokemonList = [
   },
   {
         name: "Pidgeot",
-        height: 1.5, 
+        height: 1.7, 
         types: ["Flying", "Normal"]
   }
       
@@ -48,14 +48,14 @@ for (let i = 0; i < pokemonList.length; i++) {
   } 
 
   let pokemonName = `<strong>Name:</strong> ${pokemonList[i].name}`;
-  let pokemonHeight = `<strong>Height:</strong> ${pokemonList[i].height}`;
+  let pokemonHeight = `<strong>Height:</strong> ${pokemonList[i].height} meters`;
   let heightClassMessage = `<strong>${heightClass}</strong>`;
 
   output = `
-    <div style="; padding: 5px; margin: 20px;">
-      <h3 style="color: darkblue; text-decoration: underline; margin-bottom: 10px;">${pokemonList[i].name}</h3>
-      ${pokemonHeight}
-      ${heightClassMessage}
+    <div class="pokemon-card">
+      <h3 class="pokemon-name">${pokemonList[i].name}</h3>
+      ${pokemonHeight} 
+      ${heightClassMessage} 
     </div>
 `;
 
