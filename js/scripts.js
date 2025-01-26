@@ -36,3 +36,20 @@ let pokemonList = [
       },
       
 ]
+
+for (let i = 0; i < pokemonList.length; i++) {
+
+  let heightClass = "";
+  if (pokemonList[i].height >= 1.5) {
+    heightClass = "This is a big Pokemon" 
+    } else if (pokemonList[i].height >= 1.0 && pokemonList[i].height <1.5) {
+    heightClass = "This is an average Pokemon"
+    } else {
+    heightClass = "This is a short Pokemon"
+    }
+
+
+// Display the name, height, and classification
+document.write(`${pokemonList[i].name}, height of: ${pokemonList[i].height}. -${heightClass}.<br>`);
+}
+
