@@ -39,21 +39,21 @@ let pokemonList = [
 
 const heightThreshold = 1.6;
 
-for (let i = 0; i < pokemonList.length; i++) {
+pokemonList.forEach(function(pokemon) {
   let heightClass = "";
   let output = "";
   
-  if (pokemonList[i].height >= heightThreshold) {
+  if (pokemon.height >= heightThreshold) {
     heightClass = "----> Wow, that’s big!";
   } 
 
-  let pokemonName = `<strong>Name:</strong> ${pokemonList[i].name}`;
-  let pokemonHeight = `<strong>Height:</strong> ${pokemonList[i].height} meters`;
+  let pokemonName = `<strong>Name:</strong> ${pokemon.name}`;
+  let pokemonHeight = `<strong>Height:</strong> ${pokemon.height} meters`;
   let heightClassMessage = `<strong>${heightClass}</strong>`;
 
   output = `
     <div class="pokemon-card">
-      <h3 class="pokemon-name">${pokemonList[i].name}</h3>
+      <h3 class="pokemon-name">${pokemon.name}</h3>
       ${pokemonHeight} 
       ${heightClassMessage} 
     </div>
@@ -62,4 +62,4 @@ for (let i = 0; i < pokemonList.length; i++) {
 // Display the name, height, and classification
 document.write(output);
 }
-
+)
