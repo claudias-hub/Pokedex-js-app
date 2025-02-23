@@ -25,20 +25,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show Pokémon details in the console
     const showDetails = (pokemon) => {
       loadDetails(pokemon)
-        .then(() => console.log(pokemon))
-        .catch((error) => console.error(`Failed to load details for ${pokemon.name}: ${error.message}`));
+        .then(() => {
+          // Create a simple display instead of console.log
+          const detailsContainer = document.createElement('div');
+          detailsContainer.innerHTML = `
+            <h2>${pokemon.name}</h2>
+            <img src="${pokemon.imageUrl}" alt="${pokemon.name}">
+            <p>Height: ${pokemon.height}m</p>
+            <p>Types: ${pokemon.types.join(', ')}</p>
+          `;
+          document.body.appendChild(detailsContainer);
+        })
+        .catch(handleError(`Failed to load details for ${pokemon.name}`));
     };
 
     // Load the Pokémon list from the API
     const loadList = () => {
-      showLoadingMessage(); // Show loading message before fetching
+      showLoadingMessage();  // Show loading message before fetching
+
       return fetch(apiUrl)
         .then(handleApiResponse)
         .then(loadPokemonsInBatches)
-        .catch((error) => {
-          console.error('Failed to load Pokémon list:', error);
-        })
-        .finally(hideLoadingMessage);
+        .catch((error) => handleError('Failed to load Pokémon list')(error))
+        .finally(() => hideLoadingMessage());
     };
 
     // Handle API response and check for errors
@@ -61,45 +70,52 @@ document.addEventListener('DOMContentLoaded', () => {
             detailsUrl: pokemonData.url
           };
           return loadDetails(pokemon)
-        .then(() => add(pokemon))
-        .catch((error) => {
-          console.error(`Failed to load Pokémon: ${pokemon.name}`, error);
-          // Continue processing other Pokémon even if one fails
+            .then(() => add(pokemon))
+            .catch((error) => {
+              console.error(`Failed to load Pokémon: ${pokemon.name}`, error);
+              return Promise.reject(error);
+            });
         });
-    });
 
-    pokemonBatches.push(Promise.all(batch));
-  }
+        pokemonBatches.push(Promise.allSettled(batch));
+      }
 
-  return Promise.all(pokemonBatches)
-    .catch((error) => {
-      console.error('Batch processing failed:', error);
-    });
-};
+      return Promise.all(pokemonBatches).then((results) => {
+        results.forEach((result) => {
+          if (result.status === 'rejected') {
+            console.error('Batch failed:', result.reason);
+          }
+        });
+      });
+    };
 
     // Load details of a specific Pokémon
     const loadDetails = (pokemon) => {
-      showLoadingMessage(); // Show loading message before fetching details
+      showLoadingMessage();
       return fetch(pokemon.detailsUrl)
         .then(handleApiResponse)
         .then((details) => {
-          if (!details.sprites?.front_default || !details.height || !details.types) {
-            throw new Error(`Missing crucial details for Pokémon ${pokemon.name}.`);
+          if (!details.sprites?.front_default) {
+            throw new Error(`Missing image for ${pokemon.name}`);
+          }
+          if (!details.height) {
+            throw new Error(`Missing height for ${pokemon.name}`);
+          }
+          if (!details.types || details.types.length === 0) {
+            throw new Error(`Missing types for ${pokemon.name}`);
           }
 
           pokemon.imageUrl = details.sprites.front_default;
           pokemon.height = details.height;
-          pokemon.types = details.types;
+          pokemon.types = details.types.map(type => type.type.name);
         })
-        .catch((error) => {
-          console.error(`Error fetching details for ${pokemon.name}:`, error);
-        })
-        .finally(hideLoadingMessage); // Always hide loading message
+        .catch((error) => handleError(`Failed to load details for ${pokemon.name}`)(error))
+        .finally(() => hideLoadingMessage());
     };
 
     // Generic error handler function
     const handleError = (message) => (error) => {
-      console.error(`${message} ${error.message || error}`);
+      console.error(`${message}: ${error.message || error}`);
     };
 
     // Return the repository's public API
@@ -116,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load the Pokémon list and display them
   pokemonRepository.loadList()
     .then(displayPokemon)
-    .catch(handleError('Failed to load Pokémon data:'));
+    .catch((error) => handleError('Failed to load Pokémon list:')(error));
 
   // Display Pokémon data
   function displayPokemon() {
@@ -135,12 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
       button.classList.add('pokemon-button');
       button.innerText = pokemon.name;
 
-      // Log for debugging button creation
-      console.log('Button created for:', pokemon.name);
-
       // Attach the event listener to the button
       button.addEventListener('click', () => {
-        console.log(`Button clicked for: ${pokemon.name}`);  // Log for debugging click
         pokemonRepository.showDetails(pokemon);
       });
 
