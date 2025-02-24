@@ -29,44 +29,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const getAll = () => pokemonList;
 
     // Show Pokémon details in the console
-    const showDetails = (pokemon) => {
-      return loadDetails(pokemon)
-        .then(() => {
-          console.log(pokemon.name); // <-- Add this line to log the Pokémon's name
-          // Ensure data is valid before updating the UI
-          if (!pokemon.name || !pokemon.imageUrl || !pokemon.height || !pokemon.types) {
-            throw new Error(`Invalid data for ${pokemon.name}`);
-          }
-      
-          // Proceed with UI updates only after ensuring valid data
-          const detailsContainer = document.createElement('div');
-          detailsContainer.innerHTML = `
-            <h2>${pokemon.name}</h2>
-            <img src="${pokemon.imageUrl}" alt="${pokemon.name}">
-            <p>Height: ${pokemon.height}m</p>
-            <p>Types: ${pokemon.types.join(', ')}</p>
-          `;
-          document.body.appendChild(detailsContainer);
-        })
-        .catch((error) => {
-          console.error(`Failed to load details for ${pokemon.name}:`, error);
-          handleError(`Failed to load details for ${pokemon.name}`)(error);
-        });
+    const showDetails = async (pokemon) => {
+      try {
+        const updatedPokemon = await loadDetails(pokemon);
+    
+        console.log('Loaded details:', updatedPokemon);
+    
+        if (!updatedPokemon || !updatedPokemon.name || !updatedPokemon.imageUrl || !updatedPokemon.height || !updatedPokemon.types) {
+          throw new Error(`Invalid data for ${updatedPokemon?.name || 'unknown Pokémon'}`);
+        }
+    
+        const detailsContainer = document.createElement('div');
+        detailsContainer.classList.add('pokemon-details');
+        detailsContainer.innerHTML = `
+          <h2>${updatedPokemon.name}</h2>
+          <img src="${updatedPokemon.imageUrl}" alt="${updatedPokemon.name}">
+          <p>Height: ${updatedPokemon.height}m</p>
+          <p>Types: ${updatedPokemon.types.join(', ')}</p>
+        `;
+    
+        document.body.appendChild(detailsContainer);
+      } catch (error) {
+        console.error(`Failed to load details for ${pokemon.name}:`, error);
+        handleError(`Failed to load details for ${pokemon.name}`)(error);
+      }
     };
+    
     
 
     // Load the Pokémon list from the API
-    const loadList = () => {
+    const loadList = async () => {
       console.log(`Fetching Pokémon from: ${apiUrl}`);
-      
-      return fetch(apiUrl)
-        .then(handleApiResponse)
-        .then((json) => {
-          console.log('Received Pokémon List:', json.results);
-          return loadPokemonsInBatches(json);
-        })
-        .catch(handleError('Failed to load Pokémon list'))
-        .finally(() => hideLoadingMessage());
+      showLoadingMessage();
+    
+      try {
+        const response = await fetch(apiUrl);
+        const json = await handleApiResponse(response);
+        
+        console.log('Received Pokémon List:', json.results);
+        await loadPokemonsInBatches(json);
+      } catch (error) {
+        handleError('Failed to load Pokémon list')(error);
+      } finally {
+        hideLoadingMessage();
+      }
     };
 
     // Handle API response and check for errors
@@ -131,52 +137,69 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Load details of a specific Pokémon
-    const loadDetails = (pokemon) => {
-      console.log("Loading details for", pokemon.name); // <-- Debugging
-
+    const loadDetails = async (pokemon) => {
+      console.log(`Loading details for: ${pokemon.name}`);
+    
       if (!pokemon.detailsUrl) {
-        return Promise.reject(new Error('No details URL provided'));
+        throw new Error('No details URL provided');
       }
     
       showLoadingMessage();
-      return fetch(pokemon.detailsUrl)
-        .then(handleApiResponse)  // This already has good error handling
-        .then((details) => {
-          if (!details || !details.sprites || !details.sprites.front_default || !details.height || !details.types) {
-            throw new Error(`Incomplete or invalid data for ${pokemon.name}`);
-          }
     
-          // Update pokemon object with validated data
-          pokemon.imageUrl = details.sprites.front_default;
-          pokemon.height = details.height;
-          pokemon.types = details.types.map(type => type.type.name);
+      try {
+        const response = await fetch(pokemon.detailsUrl);
+        const details = await handleApiResponse(response);
     
-          return pokemon;
-        })
-        .catch((error) => {
-          handleError(`Failed to load details for ${pokemon.name}`)(error);
-          pokemonList = pokemonList.filter(p => p.name !== pokemon.name); // Remove incomplete data from list
-        })
-        .finally(() => hideLoadingMessage());
+        if (!details?.sprites?.front_default || !details.height || !details.types) {
+          throw new Error(`Incomplete or invalid data for ${pokemon.name}`);
+        }
+    
+        // Update Pokémon details
+        pokemon.imageUrl = details.sprites.front_default;
+        pokemon.height = details.height;
+        pokemon.types = details.types.map((type) => type.type.name);
+    
+        return pokemon;
+      } catch (error) {
+        handleError(`Failed to load details for ${pokemon.name}`)(error);
+        pokemonList = pokemonList.filter((p) => p.name !== pokemon.name); // Remove incomplete Pokémon
+        throw error; // Rethrow for further handling if needed
+      } finally {
+        hideLoadingMessage();
+      }
     };
+    
     
 
     // Generic error handler function
-    const handleError = (message) => (error) => {
-      console.error(`${message}:`, error);
-      
-      // Show user-friendly error message in UI
-      const errorContainer = document.createElement('div');
-      errorContainer.classList.add('error-message');
-      errorContainer.innerHTML = ` 
-        <p>Something went wrong: ${message}</p>
-        <button onclick="this.parentElement.remove()">Close</button>
-      `;
-      document.body.appendChild(errorContainer);
-      
-      // Rethrow error for promise chain
-      throw error;
-    };
+const handleError = (message) => (error) => {
+  console.error(`${message}:`, error);
+
+  // Determine a user-friendly error message
+  let userMessage;
+  if (error instanceof TypeError) {
+    userMessage = 'There was a problem processing the data.';
+  } else if (error instanceof SyntaxError) {
+    userMessage = 'Unexpected data format received.';
+  } else if (error instanceof ReferenceError) {
+    userMessage = 'Something went wrong internally. Please try again.';
+  } else {
+    userMessage = 'An unexpected error occurred. Please try again later.';
+  }
+
+  // Show user-friendly error message in UI
+  const errorContainer = document.createElement('div');
+  errorContainer.classList.add('error-message');
+  errorContainer.innerHTML = ` 
+    <p>${userMessage}</p>
+    <button onclick="this.parentElement.remove()">Close</button>
+  `;
+  document.body.appendChild(errorContainer);
+
+  // Rethrow error for promise chain handling
+  throw error;
+};
+
 
     // Return the repository's public API
     return {
