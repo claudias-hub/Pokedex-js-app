@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Encapsulate the Pokémon repository functionality using an IIFE
   const pokemonRepository = (() => {
     let pokemonList = [];
-    const apiUrl = 'https://pokeapi.co/api/v2/pokemon/';
+    const apiUrl = 'https://pokeapi.co/api/v2/pokemon?limit=10'; // Load 10 Pokémon
     const heightThreshold = 10;
 
     // Add a new Pokémon to the repository
@@ -19,16 +19,26 @@ document.addEventListener('DOMContentLoaded', () => {
       typeof pokemon === 'object' && 
       pokemon !== null && 
       pokemon.name && 
-      pokemon.height
+      pokemon.height && 
+      pokemon.imageUrl && // Added check for imageUrl
+      pokemon.types && pokemon.types.length > 0 // Check that types exist
     );
+    
 
     // Get all Pokémon from the repository
     const getAll = () => pokemonList;
 
     // Show Pokémon details in the console
     const showDetails = (pokemon) => {
-      loadDetails(pokemon)
+      return loadDetails(pokemon)
         .then(() => {
+          console.log(pokemon.name); // <-- Add this line to log the Pokémon's name
+          // Ensure data is valid before updating the UI
+          if (!pokemon.name || !pokemon.imageUrl || !pokemon.height || !pokemon.types) {
+            throw new Error(`Invalid data for ${pokemon.name}`);
+          }
+      
+          // Proceed with UI updates only after ensuring valid data
           const detailsContainer = document.createElement('div');
           detailsContainer.innerHTML = `
             <h2>${pokemon.name}</h2>
@@ -38,16 +48,23 @@ document.addEventListener('DOMContentLoaded', () => {
           `;
           document.body.appendChild(detailsContainer);
         })
-        .catch(handleError(`Failed to load details for ${pokemon.name}`));
+        .catch((error) => {
+          console.error(`Failed to load details for ${pokemon.name}:`, error);
+          handleError(`Failed to load details for ${pokemon.name}`)(error);
+        });
     };
+    
 
     // Load the Pokémon list from the API
     const loadList = () => {
-      showLoadingMessage();  // Show loading message before fetching
-
+      console.log(`Fetching Pokémon from: ${apiUrl}`);
+      
       return fetch(apiUrl)
         .then(handleApiResponse)
-        .then(loadPokemonsInBatches)
+        .then((json) => {
+          console.log('Received Pokémon List:', json.results);
+          return loadPokemonsInBatches(json);
+        })
         .catch(handleError('Failed to load Pokémon list'))
         .finally(() => hideLoadingMessage());
     };
@@ -112,55 +129,37 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error('No Pokemon could be loaded');
       }
     };
-    
 
     // Load details of a specific Pokémon
     const loadDetails = (pokemon) => {
+      console.log("Loading details for", pokemon.name); // <-- Debugging
+
       if (!pokemon.detailsUrl) {
         return Promise.reject(new Error('No details URL provided'));
       }
     
       showLoadingMessage();
       return fetch(pokemon.detailsUrl)
-        .then(handleApiResponse)
+        .then(handleApiResponse)  // This already has good error handling
         .then((details) => {
-          try {
-            if (!details) {
-              throw new Error('No data received from server');
-            }
-    
-            // Validate required data
-            const requiredFields = {
-              'image': details.sprites?.front_default,
-              'height': details.height,
-              'types': details.types?.length > 0
-            };
-    
-            const missingFields = Object.entries(requiredFields)
-              .filter(([, value]) => !value)
-              .map(([field]) => field);
-    
-            if (missingFields.length > 0) {
-              throw new Error(`Missing required data: ${missingFields.join(', ')}`);
-            }
-    
-            // Update pokemon object
-            pokemon.imageUrl = details.sprites.front_default;
-            pokemon.height = details.height;
-            pokemon.types = details.types.map(type => type.type.name);
-            
-            return pokemon;
-          } catch (error) {
-            throw new Error(`Data validation failed for ${pokemon.name}: ${error.message}`);
+          if (!details || !details.sprites || !details.sprites.front_default || !details.height || !details.types) {
+            throw new Error(`Incomplete or invalid data for ${pokemon.name}`);
           }
+    
+          // Update pokemon object with validated data
+          pokemon.imageUrl = details.sprites.front_default;
+          pokemon.height = details.height;
+          pokemon.types = details.types.map(type => type.type.name);
+    
+          return pokemon;
         })
         .catch((error) => {
           handleError(`Failed to load details for ${pokemon.name}`)(error);
-          // Remove incomplete pokemon from list
-          pokemonList = pokemonList.filter(p => p.name !== pokemon.name);
+          pokemonList = pokemonList.filter(p => p.name !== pokemon.name); // Remove incomplete data from list
         })
         .finally(() => hideLoadingMessage());
     };
+    
 
     // Generic error handler function
     const handleError = (message) => (error) => {
@@ -169,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Show user-friendly error message in UI
       const errorContainer = document.createElement('div');
       errorContainer.classList.add('error-message');
-      errorContainer.innerHTML = `
+      errorContainer.innerHTML = ` 
         <p>Something went wrong: ${message}</p>
         <button onclick="this.parentElement.remove()">Close</button>
       `;
@@ -219,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
           button.classList.add('pokemon-button');
           button.innerText = pokemon.name;
           button.addEventListener('click', () => {
+            console.log(`Button clicked for ${pokemon.name}`); // <-- Debugging
             pokemonRepository.showDetails(pokemon)
               .catch(error => console.error('Failed to show details:', error));
           });
