@@ -10,7 +10,7 @@ let pokemonRepository = (function () {
     ) {
       pokemonList.push(pokemon);
     } else {
-      console.log("Pokemon is not correct");
+      console.error("Invalid Pokémon object:", pokemon);
     }
   }
 
@@ -34,61 +34,69 @@ let pokemonRepository = (function () {
   }
 
   function loadList() {
-    return fetch(apiUrl) // Perform the GET request
-      .then(response => response.json()) // Convert response to JSON
-      .then(json => {
-        json.results.forEach(item => {
-          let pokemon = {
-            name: item.name, // Extract Pokémon name
-            detailsUrl: item.url // Extract Pokémon details URL
-          };
-          add(pokemon); // Use add() to store Pokémon in pokemonList
-        });
-        return pokemonList; // Return the updated list
+    console.log("Fetching Pokémon list...");
+    return fetch(apiUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
       })
-      .catch(error => {
+      .then((json) => {
+        console.log("Pokémon data received:", json);
+        json.results.forEach((item) => {
+          let pokemon = {
+            name: item.name,
+            detailsUrl: item.url,
+          };
+          add(pokemon);
+        });
+        return pokemonList;
+      })
+      .catch((error) => {
         console.error("Error loading Pokémon list:", error);
+        alert("Failed to load Pokémon. Please check your internet connection.");
       });
   }
-  
-  
 
   function loadDetails(pokemon) {
-    return fetch(pokemon.detailsUrl) // Fetch Pokémon details from its URL
-      .then(response => response.json()) // Convert response to JSON
-      .then(details => {
-        // Assign additional details
-        pokemon.imgUrl = details.sprites.front_default; // Pokémon image
-        pokemon.height = details.height; // Pokémon height
+    console.log(`Loading details for ${pokemon.name}...`);
+    return fetch(pokemon.detailsUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Failed to load details for ${pokemon.name}`);
+        }
+        return response.json();
       })
-      .catch(error => {
+      .then((details) => {
+        pokemon.imgUrl = details.sprites.front_default;
+        pokemon.height = details.height;
+        console.log("Details loaded:", pokemon);
+      })
+      .catch((error) => {
         console.error(`Failed to load details for ${pokemon.name}:`, error);
+        alert(`Could not fetch details for ${pokemon.name}`);
       });
   }
-  
 
   function showDetails(pokemon) {
-    loadDetails(pokemon).then(() => { 
-      console.log(pokemon); // ✅ Logs Pokémon details after loading from API
+    loadDetails(pokemon).then(() => {
+      console.log("Pokémon Details:", pokemon);
     });
   }
-  
-  
 
   return {
     add: add,
     getAll: getAll,
     addListItem: addListItem,
-    loadList: loadList, // ✅ Returning loadList function
+    loadList: loadList,
     loadDetails: loadDetails,
     showDetails: showDetails,
   };
 })();
 
-// Load Pokémon list and display them
 pokemonRepository.loadList().then(() => {
   pokemonRepository.getAll().forEach((pokemon) => {
     pokemonRepository.addListItem(pokemon);
   });
 });
-
