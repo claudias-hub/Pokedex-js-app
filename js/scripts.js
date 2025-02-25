@@ -31,7 +31,7 @@ let pokemonRepository = (function () {
     button.addEventListener("click", function () {
       console.log("Button clicked for:", pokemon); // Debugging log
       showDetails(pokemon);
-    });
+    }, { once: true }); // Prevent multiple clicks triggering multiple API calls
   }
 
   function displayError(message) {
@@ -44,13 +44,36 @@ let pokemonRepository = (function () {
     errorContainer.innerText = message;
   }
 
+  function showLoadingMessage() {
+    let loadingContainer = document.querySelector(".loading-message");
+    if (!loadingContainer) {
+      loadingContainer = document.createElement("div");
+      loadingContainer.classList.add("loading-message");
+      document.body.appendChild(loadingContainer);
+    }
+    loadingContainer.innerText = "Loading data...";
+  }
+
+  function hideLoadingMessage() {
+    let loadingContainer = document.querySelector(".loading-message");
+    if (loadingContainer) {
+      loadingContainer.remove();
+    }
+  }
+
   function fetchData(url) {
+    showLoadingMessage();
     return fetch(url)
       .then((response) => {
+        hideLoadingMessage();
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         return response.json();
+      })
+      .catch((error) => {
+        hideLoadingMessage();
+        throw error;
       });
   }
 
