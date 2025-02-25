@@ -45,7 +45,7 @@ let pokemonRepository = (function () {
   }
 
   function loadList() {
-    console.log("Fetching Pokémon list...");
+    console.log("Fetching Pokémon list...")
     return fetch(apiUrl)
       .then((response) => {
         if (!response.ok) {
@@ -71,7 +71,7 @@ let pokemonRepository = (function () {
   }
 
   function loadDetails(pokemon) {
-    console.log(`Loading details for ${pokemon.name}...`);
+    console.log(`Loading details for ${pokemon.name}...`)
     return fetch(pokemon.detailsUrl)
       .then((response) => {
         if (!response.ok) {
