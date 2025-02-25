@@ -29,8 +29,19 @@ let pokemonRepository = (function () {
     pokemonListElement.appendChild(listPokemon);
 
     button.addEventListener("click", function () {
+      console.log("Button clicked for:", pokemon); // Debugging log
       showDetails(pokemon);
     });
+  }
+
+  function displayError(message) {
+    let errorContainer = document.querySelector(".error-message");
+    if (!errorContainer) {
+      errorContainer = document.createElement("div");
+      errorContainer.classList.add("error-message");
+      document.body.appendChild(errorContainer);
+    }
+    errorContainer.innerText = message;
   }
 
   function loadList() {
@@ -55,7 +66,7 @@ let pokemonRepository = (function () {
       })
       .catch((error) => {
         console.error("Error loading Pokémon list:", error);
-        alert("Failed to load Pokémon. Please check your internet connection.");
+        displayError("Failed to load Pokémon. Please check your internet connection.");
       });
   }
 
@@ -75,7 +86,7 @@ let pokemonRepository = (function () {
       })
       .catch((error) => {
         console.error(`Failed to load details for ${pokemon.name}:`, error);
-        alert(`Could not fetch details for ${pokemon.name}`);
+        displayError(`Could not fetch details for ${pokemon.name}`);
       });
   }
 
