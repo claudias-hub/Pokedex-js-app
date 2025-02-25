@@ -44,21 +44,28 @@ let pokemonRepository = (function () {
     errorContainer.innerText = message;
   }
 
-  function loadList() {
-    console.log("Fetching Pokémon list...")
-    return fetch(apiUrl)
+  function fetchData(url) {
+    return fetch(url)
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         return response.json();
-      })
+      });
+  }
+
+  function loadList() {
+    console.log("Fetching Pokémon list...");
+    return fetchData(apiUrl)
       .then((json) => {
         console.log("Pokémon data received:", json);
+        if (!json.results || !Array.isArray(json.results)) {
+          throw new Error("Invalid data format received");
+        }
         json.results.forEach((item) => {
           let pokemon = {
             name: item.name,
-            detailsUrl: item.url,
+            detailsUrl: item.url
           };
           add(pokemon);
         });
@@ -71,15 +78,12 @@ let pokemonRepository = (function () {
   }
 
   function loadDetails(pokemon) {
-    console.log(`Loading details for ${pokemon.name}...`)
-    return fetch(pokemon.detailsUrl)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Failed to load details for ${pokemon.name}`);
-        }
-        return response.json();
-      })
+    console.log(`Loading details for ${pokemon.name}...`);
+    return fetchData(pokemon.detailsUrl)
       .then((details) => {
+        if (!details.sprites || !details.sprites.front_default || !details.height) {
+          throw new Error(`Incomplete data for ${pokemon.name}`);
+        }
         pokemon.imgUrl = details.sprites.front_default;
         pokemon.height = details.height;
         console.log("Details loaded:", pokemon);
@@ -102,7 +106,7 @@ let pokemonRepository = (function () {
     addListItem: addListItem,
     loadList: loadList,
     loadDetails: loadDetails,
-    showDetails: showDetails,
+    showDetails: showDetails
   };
 })();
 
