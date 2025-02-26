@@ -37,14 +37,18 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function displayError(message) {
-      let errorContainer = document.querySelector(".error-message") || document.createElement("div");
+      let errorContainer =
+        document.querySelector(".error-message") ||
+        document.createElement("div");
       errorContainer.classList.add("error-message");
       document.body.appendChild(errorContainer);
       errorContainer.innerText = message;
     }
 
     function showLoadingMessage() {
-      let loadingContainer = document.querySelector(".loading-message") || document.createElement("div");
+      let loadingContainer =
+        document.querySelector(".loading-message") ||
+        document.createElement("div");
       loadingContainer.classList.add("loading-message");
       document.body.appendChild(loadingContainer);
       loadingContainer.innerText = "Loading data...";
@@ -67,7 +71,9 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .catch((error) => {
           hideLoadingMessage();
-          displayError("Failed to load Pokémon. Please check your internet connection.");
+          displayError(
+            "Failed to load Pokémon. Please check your internet connection."
+          );
           throw error;
         });
     }
@@ -76,58 +82,57 @@ document.addEventListener("DOMContentLoaded", function () {
       console.log("Fetching Pokémon list...");
       return fetchData(apiUrl)
         .then((json) => {
-          console.log("Pokémon data received:", json);
           if (!json.results || !Array.isArray(json.results)) {
             throw new Error("Invalid data format received");
           }
           json.results.forEach((item) => {
-            let pokemon = {
-              name: item.name,
-              detailsUrl: item.url,
-            };
-            add(pokemon);
+            add({ name: item.name, detailsUrl: item.url });
           });
-          return pokemonList;
+          return pokemonList; // ✅ Ensure function returns updated list
         })
         .catch((error) => {
           console.error("Error loading Pokémon list:", error);
-          displayError(
-            "Failed to load Pokémon. Please check your internet connection."
-          );
+          displayError("Failed to load Pokémon.");
+          return []; // ✅ Ensure an empty array is returned on failure
         });
     }
+    
 
     function loadDetails(pokemon) {
       return fetchData(pokemon.detailsUrl)
         .then((details) => {
           pokemon.imgUrl = details.sprites.front_default;
           pokemon.height = details.height;
+          return pokemon; // ✅ Return updated object
         })
         .catch((error) => {
           displayError(`Could not fetch details for ${pokemon.name}`);
         });
     }
+    
 
     function displayDetails(pokemon) {
       let detailsContainer = document.querySelector(".pokemon-details") || document.createElement("div");
       detailsContainer.classList.add("pokemon-details");
       document.body.appendChild(detailsContainer);
+      
       let heightMessage = pokemon.height >= heightThreshold ? "Wow, that's big!" : "";
+      
       detailsContainer.innerHTML = `
         <h2>${pokemon.name}</h2>
-        <img src="${pokemon.imgUrl}" alt="${pokemon.name}">
-        <p>Height: ${pokemon.height} meters</p>
+        <img src="${pokemon.imgUrl || 'placeholder.jpg'}" alt="${pokemon.name}">
+        <p>Height: ${pokemon.height ? pokemon.height + " meters" : "Unknown"}</p>
         <p>${heightMessage}</p>
       `;
-      console.log("Displayed details:", pokemon); // Logs details when displayed
+      console.log("Displayed details:", pokemon);
     }
-
+    
 
     function showDetails(pokemon) {
-      loadDetails(pokemon).then(() => {
-        displayDetails(pokemon);
+      loadDetails(pokemon).then((updatedPokemon) => {
+        if (updatedPokemon) displayDetails(updatedPokemon);
       });
-    }
+    }    
 
     return {
       add: add,
