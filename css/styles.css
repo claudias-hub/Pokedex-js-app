@@ -23,7 +23,7 @@ body {
 }    
 
 button {
-    padding: 10px 20px; /* Padding inside the button */
+    /*padding: 20px 20px;  Padding inside the button */
     background-color: #4CAF50; /* Green background */
     color: white; /* White text */
     border: none; /* Remove the border */
