@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
   let pokemonRepository = (function () {
     let pokemonList = [];
-    let apiUrl = "https://pokeapi.co/api/v2/pokemon/?limit=20";
+    let apiUrl = "https://pokeapi.co/api/v2/pokemon/";
     let heightThreshold = 10;
 
     function add(pokemon) {
@@ -41,8 +41,13 @@ document.addEventListener("DOMContentLoaded", function () {
         document.querySelector(".error-message") ||
         document.createElement("div");
       errorContainer.classList.add("error-message");
-      document.body.appendChild(errorContainer);
       errorContainer.innerText = message;
+      document.body.appendChild(errorContainer);
+
+      // Remove the error message after 5 seconds
+      setTimeout(() => {
+        if (errorContainer) errorContainer.remove();
+      }, 5000);
     }
 
     function showLoadingMessage() {
@@ -65,7 +70,13 @@ document.addEventListener("DOMContentLoaded", function () {
       return fetch(url)
         .then((response) => {
           if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            if (response.status === 404) {
+              throw new Error("Resource not found (404).");
+            } else if (response.status === 500) {
+              throw new Error("Server error (500). Please try again later.");
+            } else {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
           }
           return response.json();
         })
@@ -75,50 +86,112 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .catch((error) => {
           hideLoadingMessage(); // Also hide it if an error occurs
+
           if (error.message.includes("Failed to fetch")) {
-            displayError("Network error: Unable to reach the server.");
+            displayError(
+              "Network error: Unable to reach the server. Please check your internet connection."
+            );
           } else if (error.message.includes("Unexpected token")) {
-            displayError("Data error: Received unexpected response format.");
+            displayError(
+              "Data error: The server response was not in the expected format."
+            );
           } else {
             displayError(`Error: ${error.message}`);
           }
+
+          console.error("Fetch error:", error);
           throw error; // Ensure further handling if needed
         });
     }
 
     function loadList() {
       console.log("Fetching Pokémon list...");
-      showLoadingMessage(); // Ensure message shows immediately
-    
+      showLoadingMessage();
+
       return fetchData(apiUrl)
         .then((json) => {
           if (!json.results || !Array.isArray(json.results)) {
-            throw new Error("Invalid data format received");
+            throw new Error("Invalid data format received from API.");
           }
+
+          if (json.results.length === 0) {
+            throw new Error(
+              "No Pokémon found. The API might be experiencing issues."
+            );
+          }
+
           json.results.forEach((item) => {
             add({ name: item.name, detailsUrl: item.url });
           });
-    
-          return pokemonList; // Ensure function returns updated list
-        })
-        .finally(() => hideLoadingMessage()); // Always hide loading message
-    }
-    
 
-    function loadDetails(pokemon) {
-      showLoadingMessage(); // Show loading when fetching Pokémon details
-    
-      return fetchData(pokemon.detailsUrl)
-        .then((details) => {
-          pokemon.imgUrl = details.sprites.front_default;
-          pokemon.height = details.height;
-          return pokemon;
+          return pokemonList;
         })
         .catch((error) => {
-          displayError(`Could not fetch details for ${pokemon.name}`);
-          return {};
+          console.error("Error loading Pokémon list:", error);
+          displayError("Failed to load Pokémon list. Please try again later.");
+          return []; // Ensure an empty array is returned on failure
         })
-        .finally(() => hideLoadingMessage()); // Always hide loading message
+        .finally(() => hideLoadingMessage());
+    }
+
+    function loadDetails(pokemon) {
+      showLoadingMessage();
+
+      return fetchData(pokemon.detailsUrl)
+        .then((details) => {
+          try {
+            // Validate and assign the image URL
+            pokemon.imgUrl =
+              details.sprites?.front_default || "placeholder.jpg";
+
+            // Validate and assign the height
+            if (typeof details.height === "number") {
+              pokemon.height = details.height;
+            } else {
+              console.warn(`Invalid height data for ${pokemon.name}.`);
+              pokemon.height = "Unknown";
+            }
+
+            // Validate and assign Pokémon types
+            if (Array.isArray(details.types) && details.types.length > 0) {
+              pokemon.types = details.types
+                .map((typeInfo) => typeInfo.type.name)
+                .join(", ");
+            } else {
+              console.warn(`No types found for ${pokemon.name}.`);
+              pokemon.types = "Unknown";
+            }
+
+            return pokemon;
+          } catch (error) {
+            console.error(
+              `Error processing details for ${pokemon.name}:`,
+              error
+            );
+            displayError(`Could not process details for ${pokemon.name}.`);
+
+            return {
+              name: pokemon.name,
+              imgUrl: "placeholder.jpg",
+              height: "Unknown",
+              types: "Unknown",
+            };
+          }
+        })
+        .catch((error) => {
+          displayError(
+            `Could not fetch details for ${pokemon.name}. Please try again later.`
+          );
+          console.error(`Error fetching details for ${pokemon.name}:`, error);
+
+          return {
+            name: pokemon.name,
+            imgUrl: "placeholder.jpg",
+            height: "Unknown",
+            types: "Unknown",
+          };
+        })
+        .finally(() => hideLoadingMessage());
     }
 
     function displayDetails(pokemon) {
@@ -143,11 +216,20 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function showDetails(pokemon) {
+      let detailsContainer =
+        document.querySelector(".pokemon-details") ||
+        document.createElement("div");
+      detailsContainer.classList.add("pokemon-details");
+      document.body.appendChild(detailsContainer);
+
+      // Show a temporary message while details are loading
+      detailsContainer.innerHTML = `<p>Loading details for ${pokemon.name}...</p>`;
+
       loadDetails(pokemon).then((updatedPokemon) => {
         if (updatedPokemon && updatedPokemon.imgUrl) {
           displayDetails(updatedPokemon);
         } else {
-          console.error("Invalid Pokémon data received:", updatedPokemon);
+          detailsContainer.innerHTML = `<p>Could not load details for ${pokemon.name}.</p>`;
         }
       });
     }
