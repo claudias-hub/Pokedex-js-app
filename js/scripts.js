@@ -60,26 +60,36 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function fetchData(url) {
-      showLoadingMessage();
+      showLoadingMessage(); // Show loading before fetching
+
       return fetch(url)
         .then((response) => {
-          hideLoadingMessage();
           if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
           }
           return response.json();
         })
+        .then((data) => {
+          hideLoadingMessage(); // Hide it only after data is fully processed
+          return data;
+        })
         .catch((error) => {
-          hideLoadingMessage();
-          displayError(
-            "Failed to load Pokémon. Please check your internet connection."
-          );
-          throw error;
+          hideLoadingMessage(); // Also hide it if an error occurs
+          if (error.message.includes("Failed to fetch")) {
+            displayError("Network error: Unable to reach the server.");
+          } else if (error.message.includes("Unexpected token")) {
+            displayError("Data error: Received unexpected response format.");
+          } else {
+            displayError(`Error: ${error.message}`);
+          }
+          throw error; // Ensure further handling if needed
         });
     }
 
     function loadList() {
       console.log("Fetching Pokémon list...");
+      showLoadingMessage(); // Ensure message shows immediately
+    
       return fetchData(apiUrl)
         .then((json) => {
           if (!json.results || !Array.isArray(json.results)) {
@@ -88,51 +98,59 @@ document.addEventListener("DOMContentLoaded", function () {
           json.results.forEach((item) => {
             add({ name: item.name, detailsUrl: item.url });
           });
-          return pokemonList; // ✅ Ensure function returns updated list
+    
+          return pokemonList; // Ensure function returns updated list
         })
-        .catch((error) => {
-          console.error("Error loading Pokémon list:", error);
-          displayError("Failed to load Pokémon.");
-          return []; // ✅ Ensure an empty array is returned on failure
-        });
+        .finally(() => hideLoadingMessage()); // Always hide loading message
     }
     
 
     function loadDetails(pokemon) {
+      showLoadingMessage(); // Show loading when fetching Pokémon details
+    
       return fetchData(pokemon.detailsUrl)
         .then((details) => {
           pokemon.imgUrl = details.sprites.front_default;
           pokemon.height = details.height;
-          return pokemon; // ✅ Return updated object
+          return pokemon;
         })
         .catch((error) => {
           displayError(`Could not fetch details for ${pokemon.name}`);
-        });
+          return {};
+        })
+        .finally(() => hideLoadingMessage()); // Always hide loading message
     }
-    
 
     function displayDetails(pokemon) {
-      let detailsContainer = document.querySelector(".pokemon-details") || document.createElement("div");
+      let detailsContainer =
+        document.querySelector(".pokemon-details") ||
+        document.createElement("div");
       detailsContainer.classList.add("pokemon-details");
       document.body.appendChild(detailsContainer);
-      
-      let heightMessage = pokemon.height >= heightThreshold ? "Wow, that's big!" : "";
-      
+
+      let heightMessage =
+        pokemon.height >= heightThreshold ? "Wow, that's big!" : "";
+
       detailsContainer.innerHTML = `
         <h2>${pokemon.name}</h2>
-        <img src="${pokemon.imgUrl || 'placeholder.jpg'}" alt="${pokemon.name}">
-        <p>Height: ${pokemon.height ? pokemon.height + " meters" : "Unknown"}</p>
+        <img src="${pokemon.imgUrl || "placeholder.jpg"}" alt="${pokemon.name}">
+        <p>Height: ${
+          pokemon.height ? pokemon.height + " meters" : "Unknown"
+        }</p>
         <p>${heightMessage}</p>
       `;
       console.log("Displayed details:", pokemon);
     }
-    
 
     function showDetails(pokemon) {
       loadDetails(pokemon).then((updatedPokemon) => {
-        if (updatedPokemon) displayDetails(updatedPokemon);
+        if (updatedPokemon && updatedPokemon.imgUrl) {
+          displayDetails(updatedPokemon);
+        } else {
+          console.error("Invalid Pokémon data received:", updatedPokemon);
+        }
       });
-    }    
+    }
 
     return {
       add: add,
