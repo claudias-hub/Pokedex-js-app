@@ -65,42 +65,42 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function fetchData(url) {
-      showLoadingMessage(); // Show loading before fetching
+      showLoadingMessage();
 
       return fetch(url)
         .then((response) => {
           if (!response.ok) {
-            if (response.status === 404) {
-              throw new Error("Resource not found (404).");
-            } else if (response.status === 500) {
-              throw new Error("Server error (500). Please try again later.");
-            } else {
-              throw new Error(`HTTP error! Status: ${response.status}`);
+            switch (response.status) {
+              case 404:
+                throw new Error("Resource not found (404).");
+              case 500:
+                throw new Error("Server error (500). Please try again later.");
+              default:
+                throw new Error(`HTTP error! Status: ${response.status}`);
             }
           }
-          return response.json();
+          return response.json().catch(() => {
+            throw new Error(
+              "Data error: The server response was not valid JSON."
+            );
+          });
         })
         .then((data) => {
-          hideLoadingMessage(); // Hide it only after data is fully processed
+          hideLoadingMessage();
           return data;
         })
         .catch((error) => {
-          hideLoadingMessage(); // Also hide it if an error occurs
+          hideLoadingMessage();
 
           if (error.message.includes("Failed to fetch")) {
             displayError(
               "Network error: Unable to reach the server. Please check your internet connection."
-            );
-          } else if (error.message.includes("Unexpected token")) {
-            displayError(
-              "Data error: The server response was not in the expected format."
             );
           } else {
             displayError(`Error: ${error.message}`);
           }
 
           console.error("Fetch error:", error);
-          throw error; // Ensure further handling if needed
         });
     }
 
