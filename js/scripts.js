@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let apiUrl = "https://pokeapi.co/api/v2/pokemon/";
     let heightThreshold = 10;
 
+    // Core functions
     function add(pokemon) {
       if (
         typeof pokemon === "object" &&
@@ -31,11 +32,12 @@ document.addEventListener("DOMContentLoaded", function () {
       pokemonListElement.appendChild(listPokemon);
 
       button.addEventListener("click", function () {
-        console.log(`Button clicked for: ${pokemon.name}`); // Logs name on click
+        console.log(`Button clicked for: ${pokemon.name}`);
         showDetails(pokemon);
       });
     }
 
+    // Utility functions
     function displayError(message) {
       let errorContainer =
         document.querySelector(".error-message") ||
@@ -44,7 +46,6 @@ document.addEventListener("DOMContentLoaded", function () {
       errorContainer.innerText = message;
       document.body.appendChild(errorContainer);
 
-      // Remove the error message after 5 seconds
       setTimeout(() => {
         if (errorContainer) errorContainer.remove();
       }, 5000);
@@ -64,6 +65,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (loadingContainer) loadingContainer.remove();
     }
 
+    // Data fetching functions
     function fetchData(url) {
       showLoadingMessage();
 
@@ -91,15 +93,7 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .catch((error) => {
           hideLoadingMessage();
-
-          if (error.message.includes("Failed to fetch")) {
-            displayError(
-              "Network error: Unable to reach the server. Please check your internet connection."
-            );
-          } else {
-            displayError(`Error: ${error.message}`);
-          }
-
+          displayError(`Error: ${error.message}`);
           console.error("Fetch error:", error);
         });
     }
@@ -129,7 +123,7 @@ document.addEventListener("DOMContentLoaded", function () {
         .catch((error) => {
           console.error("Error loading Pokémon list:", error);
           displayError("Failed to load Pokémon list. Please try again later.");
-          return []; // Ensure an empty array is returned on failure
+          return [];
         })
         .finally(() => hideLoadingMessage());
     }
@@ -139,51 +133,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
       return fetchData(pokemon.detailsUrl)
         .then((details) => {
-          try {
-            // Validate and assign the image URL
-            pokemon.imgUrl =
-              details.sprites?.front_default || "placeholder.jpg";
+          pokemon.imgUrl = details.sprites?.front_default || "placeholder.jpg";
+          pokemon.height =
+            typeof details.height === "number" ? details.height : "Unknown";
+          pokemon.types = Array.isArray(details.types)
+            ? details.types.map((typeInfo) => typeInfo.type.name).join(", ")
+            : "Unknown";
 
-            // Validate and assign the height
-            if (typeof details.height === "number") {
-              pokemon.height = details.height;
-            } else {
-              console.warn(`Invalid height data for ${pokemon.name}.`);
-              pokemon.height = "Unknown";
-            }
-
-            // Validate and assign Pokémon types
-            if (Array.isArray(details.types) && details.types.length > 0) {
-              pokemon.types = details.types
-                .map((typeInfo) => typeInfo.type.name)
-                .join(", ");
-            } else {
-              console.warn(`No types found for ${pokemon.name}.`);
-              pokemon.types = "Unknown";
-            }
-
-            return pokemon;
-          } catch (error) {
-            console.error(
-              `Error processing details for ${pokemon.name}:`,
-              error
-            );
-            displayError(`Could not process details for ${pokemon.name}.`);
-
-            return {
-              name: pokemon.name,
-              imgUrl: "placeholder.jpg",
-              height: "Unknown",
-              types: "Unknown",
-            };
-          }
+          return pokemon;
         })
         .catch((error) => {
-          displayError(
-            `Could not fetch details for ${pokemon.name}. Please try again later.`
-          );
+          displayError(`Could not fetch details for ${pokemon.name}.`);
           console.error(`Error fetching details for ${pokemon.name}:`, error);
-
           return {
             name: pokemon.name,
             imgUrl: "placeholder.jpg",
@@ -194,6 +155,7 @@ document.addEventListener("DOMContentLoaded", function () {
         .finally(() => hideLoadingMessage());
     }
 
+    // UI display functions
     function displayDetails(pokemon) {
       let detailsContainer =
         document.querySelector(".pokemon-details") ||
@@ -212,7 +174,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }</p>
         <p>${heightMessage}</p>
       `;
-      console.log("Displayed details:", pokemon);
     }
 
     function showDetails(pokemon) {
@@ -222,16 +183,72 @@ document.addEventListener("DOMContentLoaded", function () {
       detailsContainer.classList.add("pokemon-details");
       document.body.appendChild(detailsContainer);
 
-      // Show a temporary message while details are loading
       detailsContainer.innerHTML = `<p>Loading details for ${pokemon.name}...</p>`;
 
       loadDetails(pokemon).then((updatedPokemon) => {
         if (updatedPokemon && updatedPokemon.imgUrl) {
-          displayDetails(updatedPokemon);
+          showModal(updatedPokemon);
         } else {
           detailsContainer.innerHTML = `<p>Could not load details for ${pokemon.name}.</p>`;
         }
       });
+    }
+
+    function showModal(pokemon) {
+      let modalContainer = document.querySelector("#modal-container");
+
+      // Clear previous modal content
+      modalContainer.innerHTML = "";
+
+      // Create modal content
+      let modal = document.createElement("div");
+      modal.classList.add("modal");
+
+      // Add close button
+      let closeButton = document.createElement("button");
+      closeButton.classList.add("modal-close");
+      closeButton.innerText = "X";
+      closeButton.addEventListener("click", hideModal);
+
+      // Add Pokémon details
+      let title = document.createElement("h2");
+      title.innerText = pokemon.name;
+
+      let image = document.createElement("img");
+      image.src = pokemon.imgUrl;
+      image.alt = pokemon.name;
+
+      let height = document.createElement("p");
+      height.innerText = `Height: ${pokemon.height} meters`;
+
+      // Append elements to modal
+      modal.appendChild(closeButton);
+      modal.appendChild(title);
+      modal.appendChild(image);
+      modal.appendChild(height);
+      modalContainer.appendChild(modal);
+
+      // Show modal
+      modalContainer.classList.add("is-visible");
+
+      // Close modal when clicking outside it
+      modalContainer.addEventListener("click", (event) => {
+        if (event.target === modalContainer) {
+          hideModal();
+        }
+      });
+
+      // Close modal with "Escape" key
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          hideModal();
+        }
+      });
+    }
+
+    function hideModal() {
+      let modalContainer = document.querySelector("#modal-container");
+      modalContainer.classList.remove("is-visible");
     }
 
     return {
@@ -241,6 +258,8 @@ document.addEventListener("DOMContentLoaded", function () {
       loadList: loadList,
       loadDetails: loadDetails,
       showDetails: showDetails,
+      showModal: showModal,
+      hideModal: hideModal,
     };
   })();
 
