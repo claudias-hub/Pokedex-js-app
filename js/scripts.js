@@ -196,60 +196,65 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function showModal(pokemon) {
       let modalContainer = document.querySelector("#modal-container");
-
+    
       // Clear previous modal content
       modalContainer.innerHTML = "";
-
+    
       // Create modal content
       let modal = document.createElement("div");
       modal.classList.add("modal");
-
+    
       // Add close button
       let closeButton = document.createElement("button");
       closeButton.classList.add("modal-close");
       closeButton.innerText = "X";
       closeButton.addEventListener("click", hideModal);
-
+    
       // Add Pokémon details
       let title = document.createElement("h2");
       title.innerText = pokemon.name;
-
+    
       let image = document.createElement("img");
       image.src = pokemon.imgUrl;
       image.alt = pokemon.name;
-
+    
       let height = document.createElement("p");
       height.innerText = `Height: ${pokemon.height} meters`;
-
+    
       // Append elements to modal
       modal.appendChild(closeButton);
       modal.appendChild(title);
       modal.appendChild(image);
       modal.appendChild(height);
       modalContainer.appendChild(modal);
-
+    
       // Show modal
       modalContainer.classList.add("is-visible");
-
-      // Close modal when clicking outside it
-      modalContainer.addEventListener("click", (event) => {
-        if (event.target === modalContainer) {
-          hideModal();
-        }
-      });
-
-      // Close modal with "Escape" key
-      document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") {
-          hideModal();
-        }
-      });
     }
-
+    
+    // ✅ Ensure the event listener is added **only once**
+    document.querySelector("#modal-container").addEventListener("click", function (event) {
+      let modal = document.querySelector(".modal");
+    
+      // If the user clicks outside the modal, close it
+      if (event.target === this) {
+        hideModal();
+      }
+    });
+    
+    // ✅ Global keydown event listener (added once)
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        hideModal();
+      }
+    });
+    
     function hideModal() {
       let modalContainer = document.querySelector("#modal-container");
       modalContainer.classList.remove("is-visible");
     }
+    
+    
 
     return {
       add: add,
