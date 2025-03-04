@@ -26,7 +26,9 @@ document.addEventListener("DOMContentLoaded", function () {
       let button = document.createElement("button");
 
       button.innerText = pokemon.name;
-      button.classList.add("button-class");
+      button.classList.add("btn", "btn-primary", "w-100");
+      listPokemon.classList.add("list-group-item", "text-center");
+
       listPokemon.appendChild(button);
       pokemonListElement.appendChild(listPokemon);
 
@@ -59,9 +61,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function showDetails(pokemon) {
       loadDetails(pokemon).then((updatedPokemon) => {
-        pokemonModal.show(updatedPokemon); // ✅ Using the modal module
+        // Populate Bootstrap modal content
+        $("#modal-title").text(updatedPokemon.name);
+        $("#modal-image").attr("src", updatedPokemon.imgUrl);
+        $("#modal-height").text(`Height: ${updatedPokemon.height} meters`);
+
+        // Show the modal
+        $("#pokemonModal").modal("show");
       });
     }
+
 
     return {
       add: add,
@@ -118,19 +127,6 @@ document.addEventListener("DOMContentLoaded", function () {
       modalContainer.classList.remove("is-visible");
     }
 
-    // ✅ Close modal when clicking outside
-    document.querySelector("#modal-container").addEventListener("click", function (event) {
-      if (event.target === this) {
-        hideModal();
-      }
-    });
-
-    // ✅ Close modal on Escape key press
-    document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") {
-        hideModal();
-      }
-    });
 
     return {
       show: showModal,
