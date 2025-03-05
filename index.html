@@ -10,14 +10,11 @@
       integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
       crossorigin="anonymous"
     />
-    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="dist/styles.min.css" />
   </head>
   <body>
-    <nav
-      class="navbar navbar-expand-sm navbar-light bg-light"
-      role="navigation"
-    >
-      <a class="navbar-brand" href="#">My Pokedex</a>
+    <nav class="navbar navbar-expand-sm" role="navigation">
+      <a class="navbar-brand" href="#">Pokedex</a>
       <button
         class="navbar-toggler"
         type="button"
@@ -82,12 +79,7 @@
             </div>
             <div class="modal-body">
               <h2 id="modal-title"></h2>
-              <img
-                id="modal-image"
-                src=""
-                class="img-fluid"
-                alt="Pokemon Image"
-              />
+              <img id="modal-image" class="img-fluid" alt="Pokemon Image" />
               <p id="modal-height"></p>
             </div>
           </div>
@@ -97,8 +89,8 @@
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js"></script>
-    <script src="js/promise-polyfill.js"></script>
-    <script src="js/fetch-polyfill.js"></script>
-    <script src="js/scripts.js"></script>
+    <script src="dist/promise-polyfill.js"></script>
+    <script src="dist/fetch-polyfill.js"></script>
+    <script src="dist/scripts.min.js"></script>
   </body>
 </html>
